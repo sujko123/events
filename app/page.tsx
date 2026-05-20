@@ -1,11 +1,10 @@
-import CompleteProfilePage from "./complete-profile/page";
+import Dashboard from "./dashboard/page";
 
 
 export default function Home() {
   return (
     <div>
-
-      <CompleteProfilePage/>
+      <Dashboard />
     </div>
   );
 }
