@@ -20,7 +20,9 @@ type EventItem = {
 export default function EventBox() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const categories = ["koncert", "Sport", "Kultura", "Zabava", "Ine"];
+  const dates = ["Dnes", "Tento tyzden", "Tento mesiac", "Tento rok"];
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>("");
 
   useEffect(() => {
     let shouldUpdate = true;
@@ -58,14 +60,14 @@ export default function EventBox() {
       shouldUpdate = false;
     };
   }, []);
-    const filteredEvents =
-       selectedCategories.length === 0
-        ? events
-        : events.filter((event) =>
-            selectedCategories.includes(
-            event.event_categories?.[0]?.category?.category ?? ""
-        )
-      );
+  const filteredEvents =
+    selectedCategories.length === 0
+      ? events
+      : events.filter((event) =>
+          selectedCategories.includes(
+            event.event_categories?.[0]?.category?.category.toLowerCase() ?? ""
+          )
+        );
 
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-8 text-zinc-100">
@@ -135,26 +137,24 @@ export default function EventBox() {
             <div className="mt-5">
               <h2 className="mb-2 text-xs font-black uppercase">Datum</h2>
               <div className="space-y-2">
-                <input
-                  type="text"
-                  placeholder="Od"
-                  className="h-9 w-full border border-zinc-400 bg-white px-3 text-xs font-medium outline-none placeholder:text-zinc-500"
-                />
-
-                <input
-                  type="text"
-                  placeholder="Do"
-                  className="h-9 w-full border border-zinc-400 bg-white px-3 text-xs font-medium outline-none placeholder:text-zinc-500"
-                />
+                {dates.map((date) => (
+                  <button
+                    key={date}
+                    type="button"
+                    onClick={() =>
+                      setSelectedDate(selectedDate === date ? "" : date)
+                    }
+                    className={`h-7 w-full border px-2 text-left text-[10px] font-bold uppercase transition ${
+                      selectedDate === date
+                        ? "border-[#121212] bg-[#121212] text-white"
+                        : "border-zinc-400 bg-white text-[#121212] hover:border-[#ff3d71] hover:text-[#ff3d71]"
+                    }`}
+                  >
+                    {date}
+                  </button>
+                ))}
               </div>
             </div>
-
-            <button
-              type="button"
-              className="mt-5 w-full bg-[#121212] px-4 py-2 text-xs font-black uppercase text-white transition hover:bg-[#ff3d71]"
-            >
-              Filtrovat
-            </button>
           </aside>
 
           <div className="space-y-3">
