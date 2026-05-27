@@ -1,7 +1,14 @@
 'use client'
 
-import { createClient } from "@/app/lib/supabase/client";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useEvents } from "@/app/hooks/useEvents";
+
+type EventCategoryItem = {
+  category: {
+    id: number;
+    category: string;
+  } | null;
+};
 
 type EventItem = {
   event_id: number;
@@ -9,113 +16,64 @@ type EventItem = {
   location: string | null;
   date: string | null;
   description: string | null;
-  event_categories?: {
-    category: {
-      id: number;
-      category: string;
-    } | null;
-  }[];
+  event_categories?: EventCategoryItem[];
+};
+
+const matchesSelectedDate = (eventDate: string | null, selectedDate: string) => {
+  if (!eventDate) return false;
+
+  const eventTime = new Date(eventDate).getTime();
+  if (Number.isNaN(eventTime)) return false;
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const tomorrowStart = todayStart + 24 * 60 * 60 * 1000;
+  const weekStart = todayStart;
+  const weekEnd = weekStart + 7 * 24 * 60 * 60 * 1000;
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
+  const yearStart = new Date(now.getFullYear(), 0, 1).getTime();
+  const nextYearStart = new Date(now.getFullYear() + 1, 0, 1).getTime();
+
+  switch (selectedDate) {
+    case "Dnes":
+      return eventTime >= todayStart && eventTime < tomorrowStart;
+    case "Tento tyzden":
+      return eventTime >= weekStart && eventTime < weekEnd;
+    case "Tento mesiac":
+      return eventTime >= monthStart && eventTime < nextMonthStart;
+    case "Tento rok":
+      return eventTime >= yearStart && eventTime < nextYearStart;
+    default:
+      return true;
+  }
 };
 
 export default function EventBox() {
-  const [events, setEvents] = useState<EventItem[]>([]);
-  const categories = ["koncert", "Sport", "Kultura", "Zabava", "Ine"];
+  const categories = ["koncert", "sport", "kultura", "zabava", "ine"];
   const dates = ["Dnes", "Tento tyzden", "Tento mesiac", "Tento rok"];
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [query, setQuery] = useState<string>("");
-  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadEvents = async () => {
-      try {
-        setIsLoadingEvents(true);
-
-        const supabase = createClient();
-
-        const { data, error } = await supabase
-          .from("event")
-          .select(`
-            *,
-            event_categories (
-              category (
-                id,
-                category
-              )
-            )
-          `)
-          .order("created_at", { ascending: true });
-
-        if (error) {
-          throw error;
-        }
-
-        if (isMounted) {
-          setEvents((data ?? []) as EventItem[]);
-        }
-      } catch (error) {
-        console.error("Error loading events:", error);
-      } finally {
-        if (isMounted) {
-          setIsLoadingEvents(false);
-        }
-      }
-    };
-
-    loadEvents();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  function matchesSelectedDate(eventDate: string | null, selectedDate: string) {
-    if (!eventDate) return false;
-
-    const date = new Date(eventDate);
-    const now = new Date();
-
-    if (Number.isNaN(date.getTime())) return false;
-
-    if (selectedDate === "Dnes") {
-      return date.toDateString() === now.toDateString();
-    }
-
-    if (selectedDate === "Tento tyzden") {
-      const weekFromNow = new Date(now);
-      weekFromNow.setDate(now.getDate() + 7);
-
-      return date >= now && date <= weekFromNow;
-    }
-
-    if (selectedDate === "Tento mesiac") {
-      return (
-        date.getFullYear() === now.getFullYear() &&
-        date.getMonth() === now.getMonth()
-      );
-    }
-
-    if (selectedDate === "Tento rok") {
-      return date.getFullYear() === now.getFullYear();
-    }
-
-    return true;
-  }
+  const {
+    data: events = [] as EventItem[],
+    isLoading: isLoadingEvents,
+    error,
+  } = useEvents();
 
   const filteredEvents = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return events.filter((event) => {
+    return events.filter((event: EventItem) => {
       const matchesCategory =
         selectedCategories.length === 0 ||
-        event.event_categories?.some((item) =>
-          selectedCategories.includes(
-            item.category?.category.toLowerCase() ?? ""
-          )
+        event.event_categories?.some(
+          (item: EventCategoryItem) =>
+            selectedCategories.includes(
+              item.category?.category.toLowerCase() ?? ""
+            )
         );
-
       const matchesQuery =
         normalizedQuery === "" ||
         event.title?.toLowerCase().includes(normalizedQuery) ||
@@ -127,6 +85,21 @@ export default function EventBox() {
       return matchesCategory && matchesQuery && matchesDate;
     });
   }, [events, selectedCategories, selectedDate, query]);
+
+  if (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    return (
+      <section className="mx-auto w-full max-w-6xl px-4 py-8 text-zinc-100">
+        <div className="border border-red-400 bg-[#f4f4f4] p-4 text-[#121212] shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+          <h1 className="mb-4 text-sm font-black uppercase tracking-wide text-red-700">
+            Chyba pri nacitavani eventov
+          </h1>
+          <p className="text-sm font-bold">{errorMessage}</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-8 text-zinc-100">
@@ -228,7 +201,7 @@ export default function EventBox() {
                 Nenasli sa ziadne eventy.
               </p>
             ) : (
-              filteredEvents.map((event) => (
+              filteredEvents.map((event: EventItem) => (
                 <article
                   key={event.event_id}
                   className="grid min-h-28 grid-cols-[120px_1fr] border border-zinc-400 bg-white sm:grid-cols-[180px_1fr]"
@@ -248,15 +221,15 @@ export default function EventBox() {
                       </div>
 
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {event.event_categories?.map((item) =>
+                        {event.event_categories?.map((item: EventCategoryItem) =>
                           item.category ? (
                             <span
                               key={item.category.id}
-                              className="border border-zinc-300 px-2 py-1 text-[10px] font-bold uppercase"
-                            >
-                              {item.category.category}
-                            </span>
-                          ) : null
+                                className="border border-zinc-300 px-2 py-1 text-[10px] font-bold uppercase"
+                              >
+                                {item.category.category}
+                              </span>
+                            ) : null
                         )}
                       </div>
                     </div>
