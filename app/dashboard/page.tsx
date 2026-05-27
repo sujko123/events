@@ -1,8 +1,8 @@
 'use client'
 import { useState } from "react";
-import EventsBox from "@/app/components/EventBox";
-import NearbyEventsBox from "@/app/components/NearbyEventsBox";
-import MyEventsBox from "@/app/components/MyEventsBox";
+import EventsBox from "@/app/components/Eventlist";
+import NearbyEventsBox from "@/app/components/NearbyEvents";
+import MyEventsBox from "@/app/components/MyEventslist";
 
 export default function Dashboard() {
  const [activeTab, setActiveTab] = useState("events");

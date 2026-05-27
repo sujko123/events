@@ -1,7 +1,8 @@
 'use client'
 
 import { useMemo, useState } from "react";
-import { useEvents } from "@/app/hooks/useEvents";
+import { useEvents } from "../hooks/useEvents";
+import EventCard from "@/app/components/EventCard";
 
 type EventCategoryItem = {
   category: {
@@ -18,6 +19,35 @@ type EventItem = {
   description: string | null;
   event_categories?: EventCategoryItem[];
 };
+
+type EventCardItem = {
+  id: number;
+  title: string;
+  peopleCount: number;
+  organizer: string;
+  description: string;
+  location: string;
+  datetime: string;
+};
+
+const fakeOrganizerFor = (event: EventItem) => {
+  if (event.event_categories?.length) {
+    return `${event.event_categories[0]?.category?.category ?? "Aktivita"} Team`;
+  }
+  return "Event organizator";
+};
+
+const createCardData = (event: EventItem): EventCardItem => ({
+  id: event.event_id,
+  title: event.title ?? "Untitled Event",
+  peopleCount: 50,
+  organizer: fakeOrganizerFor(event),
+  description:
+    event.description ??
+    "Prid sa na tento event a spoznaj nových ľudí. Program obsahuje diskusiu, networking a zaujímavé aktivity.",
+  location: event.location ?? "Neznama lokalita",
+  datetime: event.date ? `${event.date} 18:00` : "2026-06-10 18:00",
+});
 
 const matchesSelectedDate = (eventDate: string | null, selectedDate: string) => {
   if (!eventDate) return false;
@@ -50,6 +80,7 @@ const matchesSelectedDate = (eventDate: string | null, selectedDate: string) => 
 };
 
 export default function EventBox() {
+  const [selectedEvent, setSelectedEvent] = useState<EventCardItem | null>(null);
   const categories = ["koncert", "sport", "kultura", "zabava", "ine"];
   const dates = ["Dnes", "Tento tyzden", "Tento mesiac", "Tento rok"];
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -191,78 +222,97 @@ export default function EventBox() {
             </div>
           </aside>
 
-          <div className="space-y-3">
-            {isLoadingEvents ? (
-              <p className="border border-zinc-400 bg-white p-4 text-sm font-bold">
-                Nacitavam eventy...
-              </p>
-            ) : filteredEvents.length === 0 ? (
-              <p className="border border-zinc-400 bg-white p-4 text-sm font-bold">
-                Nenasli sa ziadne eventy.
-              </p>
-            ) : (
-              filteredEvents.map((event: EventItem) => (
-                <article
-                  key={event.event_id}
-                  className="grid min-h-28 grid-cols-[120px_1fr] border border-zinc-400 bg-white sm:grid-cols-[180px_1fr]"
-                >
-                  <div className="relative border-r border-zinc-400 bg-zinc-100">
-                    <div className="absolute inset-0 bg-[linear-gradient(to_bottom_right,transparent_49%,#bdbdbd_50%,transparent_51%),linear-gradient(to_top_right,transparent_49%,#bdbdbd_50%,transparent_51%)]" />
-                  </div>
+          <div className="relative space-y-3">
+            {selectedEvent && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                <div className="relative w-full max-w-3xl">
+                  <button
+                    onClick={() => setSelectedEvent(null)}
+                    className="absolute right-0 top-0 z-10 rounded-md border border-white/20 bg-white/90 px-3 py-2 text-xs font-bold text-[#121212] shadow-lg backdrop-blur"
+                  >
+                    Zavrieť
+                  </button>
+                  <EventCard event={selectedEvent} />
+                </div>
+              </div>
+            )}
 
-                  <div className="flex items-start justify-between gap-4 p-4">
-                    <div className="flex flex-col justify-between">
-                      <div>
-                        <h2 className="text-sm font-black">{event.title}</h2>
-                        <p className="mt-1 text-xs font-semibold">
-                          {event.location}
-                        </p>
-                        <p className="text-xs font-semibold">{event.date}</p>
+            {(!selectedEvent || selectedEvent ) && (
+              <>
+                {isLoadingEvents ? (
+                  <p className="border border-zinc-400 bg-white p-4 text-sm font-bold">
+                    Nacitavam eventy...
+                  </p>
+                ) : filteredEvents.length === 0 ? (
+                  <p className="border border-zinc-400 bg-white p-4 text-sm font-bold">
+                    Nenasli sa ziadne eventy.
+                  </p>
+                ) : (
+                  filteredEvents.map((event: EventItem) => (
+                    <article
+                      key={event.event_id}
+                      className="grid min-h-28 grid-cols-[120px_1fr] border border-zinc-400 bg-white sm:grid-cols-[180px_1fr]"
+                    >
+                      <div className="relative border-r border-zinc-400 bg-zinc-100">
+                        <div className="absolute inset-0 bg-[linear-gradient(to_bottom_right,transparent_49%,#bdbdbd_50%,transparent_51%),linear-gradient(to_top_right,transparent_49%,#bdbdbd_50%,transparent_51%)]" />
                       </div>
 
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {event.event_categories?.map((item: EventCategoryItem) =>
-                          item.category ? (
-                            <span
-                              key={item.category.id}
-                                className="border border-zinc-300 px-2 py-1 text-[10px] font-bold uppercase"
-                              >
-                                {item.category.category}
-                              </span>
-                            ) : null
-                        )}
+                      <div className="flex items-start justify-between gap-4 p-4">
+                        <div className="flex flex-col justify-between">
+                          <div>
+                            <h2 className="text-sm font-black">{event.title}</h2>
+                            <p className="mt-1 text-xs font-semibold">
+                              {event.location}
+                            </p>
+                            <p className="text-xs font-semibold">{event.date}</p>
+                          </div>
+
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {event.event_categories?.map((item: EventCategoryItem) =>
+                              item.category ? (
+                                <span
+                                  key={item.category.id}
+                                  className="border border-zinc-300 px-2 py-1 text-[10px] font-bold uppercase"
+                                >
+                                  {item.category.category}
+                                </span>
+                              ) : null
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-end gap-5">
+                          <span className="flex items-center gap-1 text-xs font-bold">
+                            <svg
+                              aria-hidden="true"
+                              className="h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M16 19c0-2.2-1.8-4-4-4s-4 1.8-4 4m8-10a4 4 0 1 1-8 0m12 10c0-1.7-1-3.2-2.5-3.8M17 5.3a3 3 0 0 1 0 5.4"
+                              />
+                            </svg>
+                            xY
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedEvent(createCardData(event))}
+                            className="border border-[#121212] bg-white px-3 py-1.5 text-[10px] font-black uppercase transition hover:bg-[#121212] hover:text-white"
+                          >
+                            Zobrazit
+                          </button>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="flex flex-col items-end gap-5">
-                      <span className="flex items-center gap-1 text-xs font-bold">
-                        <svg
-                          aria-hidden="true"
-                          className="h-4 w-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M16 19c0-2.2-1.8-4-4-4s-4 1.8-4 4m8-10a4 4 0 1 1-8 0m12 10c0-1.7-1-3.2-2.5-3.8M17 5.3a3 3 0 0 1 0 5.4"
-                          />
-                        </svg>
-                        xY
-                      </span>
-
-                      <button
-                        type="button"
-                        className="border border-[#121212] bg-white px-3 py-1.5 text-[10px] font-black uppercase transition hover:bg-[#121212] hover:text-white"
-                      >
-                        Zobrazit
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))
+                    </article>
+                  ))
+                )}
+              </>
             )}
           </div>
         </div>

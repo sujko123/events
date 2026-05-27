@@ -3,11 +3,9 @@
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import { useEvents } from "../hooks/useEvents";
+import { useEvents } from "@/app/hooks/useEvents";
 
-type MarkerEvent = { id: number; title: string; location: string; lat: number; lng: number };
-
-const mockEvents: MarkerEvent[] = [
+const mockEvents = [
   {
     id: 1,
     title: "Tech meetup",
@@ -26,7 +24,7 @@ const smallIcon = L.divIcon({
 });
 
 export default function NearbyEventsBox() {
-  const { data: events = mockEvents as MarkerEvent[], isLoading: isLoadingEvents, error } = useEvents();
+  const { data: events = mockEvents, isLoading: isLoadingEvents, error } = useEvents();
 
   return (
     <div className="h-[500px] w-full rounded-xl overflow-hidden">
@@ -39,7 +37,7 @@ export default function NearbyEventsBox() {
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {events.map((event: MarkerEvent) => (
+        {events.map((event) => (
           <Marker key={event.id} position={[event.lat, event.lng]} icon={smallIcon}>
             <Popup className="!p-2" minWidth={0} maxWidth={200}>
               <div className="space-y-1">
